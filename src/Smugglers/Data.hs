@@ -20,19 +20,17 @@ dataEndpoint :: BS.ByteString
 dataEndpoint = "/brg/home?rewardsGroupName=rumbustion"
 
 data Rum = Rum { country   :: T.Text
-               , immortal  :: Bool
                , name      :: T.Text
                , price     :: T.Text
-               , signed    :: Bool
+               , immortal  :: Bool
                , signer    :: Maybe T.Text
                , requested :: Maybe T.Text
                , notes     :: T.Text
-} deriving (Show,Generic)
+               } deriving (Show,Generic)
 
 instance ToJSON Rum
 
-data User = User { userEmail     :: T.Text
-                 , userFirstName :: T.Text
-                 , userLastName  :: T.Text
-                 , userCookies   :: [Cookie]
-                 }
+data User = User { userEmail    :: T.Text
+                 , userPassword :: T.Text
+                 } deriving (Generic)
+instance FromJSON User

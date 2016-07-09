@@ -22,8 +22,8 @@ import qualified Network.HTTP.Simple as H
 import Smugglers.Auth
 import Smugglers.Data
 
-getRumsForUser :: User -> ExceptT ServantErr IO [Rum]
-getRumsForUser (User _ _ _ authCookies) = do
+getRumsForUser :: [Cookie] -> ExceptT ServantErr IO [Rum]
+getRumsForUser authCookies = do
     html <- getRumHTML authCookies
     let tags = parseRumHTML html
         mrums = map lineToRum tags
@@ -85,7 +85,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum without notes
           , TagText _
           , TagOpen "td" _
           , TagText _
-          , TagOpen "span" signedClasses
+          , TagOpen "span" _
           , TagClose "span"
           , TagText signer
           , TagClose "td"
@@ -98,7 +98,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum without notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost signedClasses signer dateReqAttrs ""
+          ] = Just $ newRum country immortalAttrs name cost signer dateReqAttrs ""
 lineToRum [ TagOpen "tr" dateReqAttrs -- Rum with notes
           , TagText _
           , TagOpen "td" _
@@ -123,7 +123,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum with notes
           , TagText _
           , TagOpen "td" _
           , TagText _
-          , TagOpen "span" signedClasses
+          , TagOpen "span" _
           , TagClose "span"
           , TagText signer
           , TagClose "td"
@@ -137,7 +137,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum with notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost signedClasses signer dateReqAttrs notes
+          ] = Just $ newRum country immortalAttrs name cost signer dateReqAttrs notes
 lineToRum [ TagOpen "tr" _ -- Rum they haven't had with notes
           , TagText _
           , TagOpen "td" _
@@ -173,7 +173,7 @@ lineToRum [ TagOpen "tr" _ -- Rum they haven't had with notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost [] "" [] notes
+          ] = Just $ newRum country immortalAttrs name cost "" [] notes
 lineToRum [ TagOpen "tr" _ -- Rum they haven't had with no notes
           , TagText _
           , TagOpen "td" _
@@ -208,26 +208,24 @@ lineToRum [ TagOpen "tr" _ -- Rum they haven't had with no notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost [] "" [] ""
+          ] = Just $ newRum country immortalAttrs name cost "" [] ""
 lineToRum _ = Nothing
 
 newRum :: BS.ByteString
        -> [Attribute BS.ByteString]
        -> BS.ByteString
        -> BS.ByteString
-       -> [Attribute BS.ByteString]
        -> BS.ByteString
        -> [Attribute BS.ByteString]
        -> BS.ByteString
        -> Rum
-newRum country immortalAttrs name cost signedClasses signer dateReqAttrs notes
+newRum country immortalAttrs name cost  signer dateReqAttrs notes
             = Rum (E.decodeUtf8 $ stripWhitespace country)
-                  (hasClass "immortal-item" immortalAttrs)
                   (E.decodeUtf8 $ stripWhitespace name)
                   (E.decodeUtf8 $ stripWhitespace cost)
-                  (hasClass "fa-check" signedClasses)
+                  (hasClass "immortal-item" immortalAttrs)
                   (E.decodeUtf8 <$> parseSigner (stripWhitespace signer))
-                  (E.decodeUtf8 <$> getAttr "date-requested" dateReqAttrs)
+                  (E.decodeUtf8 <$> getAttr "data-requested" dateReqAttrs)
                   (E.decodeUtf8 $ stripWhitespace notes)
 
 parseSigner :: BS.ByteString -> Maybe BS.ByteString

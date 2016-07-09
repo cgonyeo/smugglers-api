@@ -4,9 +4,9 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, aeson, base, bytestring, http-conduit
-      , servant, servant-server, stdenv, tagsoup, text, transformers, wai
-      , warp
+  f = { mkDerivation, aeson, base, bytestring, contravariant
+      , contravariant-extras, hasql, http-conduit, semigroups, servant
+      , servant-server, stdenv, tagsoup, text, transformers, wai, warp
       }:
       mkDerivation {
         pname = "smugglers-api";
@@ -15,8 +15,9 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          aeson base bytestring http-conduit servant servant-server tagsoup
-          text transformers wai warp
+          aeson base bytestring contravariant contravariant-extras hasql
+          http-conduit semigroups servant servant-server tagsoup text
+          transformers wai warp
         ];
         homepage = "https://github.com/dgonyeo/smugglers-api";
         description = "HTTP API that wraps sc.bevager.com";
