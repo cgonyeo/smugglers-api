@@ -73,7 +73,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum without notes
           , TagText _
           , TagOpen "td" _
           , TagText _
-          , TagOpen "a" immortalAttrs
+          , TagOpen "a" linkAttrs
           , TagText name
           , TagClose "a"
           , TagText _
@@ -98,7 +98,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum without notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost signer dateReqAttrs ""
+          ] = Just $ newRum country linkAttrs name cost signer dateReqAttrs ""
 lineToRum [ TagOpen "tr" dateReqAttrs -- Rum with notes
           , TagText _
           , TagOpen "td" _
@@ -111,7 +111,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum with notes
           , TagText _
           , TagOpen "td" _
           , TagText _
-          , TagOpen "a" immortalAttrs
+          , TagOpen "a" linkAttrs
           , TagText name
           , TagClose "a"
           , TagText _
@@ -137,7 +137,7 @@ lineToRum [ TagOpen "tr" dateReqAttrs -- Rum with notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost signer dateReqAttrs notes
+          ] = Just $ newRum country linkAttrs name cost signer dateReqAttrs notes
 lineToRum [ TagOpen "tr" _ -- Rum they haven't had with notes
           , TagText _
           , TagOpen "td" _
@@ -150,7 +150,7 @@ lineToRum [ TagOpen "tr" _ -- Rum they haven't had with notes
           , TagText _
           , TagOpen "td" []
           , TagText _
-          , TagOpen "a" immortalAttrs
+          , TagOpen "a" linkAttrs
           , TagText name
           , TagClose "a"
           , TagText _
@@ -173,7 +173,7 @@ lineToRum [ TagOpen "tr" _ -- Rum they haven't had with notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost "" [] notes
+          ] = Just $ newRum country linkAttrs name cost "" [] notes
 lineToRum [ TagOpen "tr" _ -- Rum they haven't had with no notes
           , TagText _
           , TagOpen "td" _
@@ -186,7 +186,7 @@ lineToRum [ TagOpen "tr" _ -- Rum they haven't had with no notes
           , TagText _
           , TagOpen "td" []
           , TagText _
-          , TagOpen "a" immortalAttrs
+          , TagOpen "a" linkAttrs
           , TagText name
           , TagClose "a"
           , TagText _
@@ -208,7 +208,7 @@ lineToRum [ TagOpen "tr" _ -- Rum they haven't had with no notes
           , TagClose "td"
           , TagText _
           , TagClose "tr"
-          ] = Just $ newRum country immortalAttrs name cost "" [] ""
+          ] = Just $ newRum country linkAttrs name cost "" [] ""
 lineToRum _ = Nothing
 
 newRum :: BS.ByteString
@@ -219,11 +219,12 @@ newRum :: BS.ByteString
        -> [Attribute BS.ByteString]
        -> BS.ByteString
        -> Rum
-newRum country immortalAttrs name cost  signer dateReqAttrs notes
-            = Rum (E.decodeUtf8 $ stripWhitespace country)
+newRum country linkAttrs name cost  signer dateReqAttrs notes
+            = Rum (parseUpstreamID linkAttrs)
+                  (E.decodeUtf8 $ stripWhitespace country)
                   (E.decodeUtf8 $ stripWhitespace name)
                   (E.decodeUtf8 $ stripWhitespace cost)
-                  (hasClass "immortal-item" immortalAttrs)
+                  (hasClass "immortal-item" linkAttrs)
                   (E.decodeUtf8 <$> parseSigner (stripWhitespace signer))
                   (E.decodeUtf8 <$> getAttr "data-requested" dateReqAttrs)
                   (E.decodeUtf8 $ stripWhitespace notes)
@@ -231,6 +232,16 @@ newRum country immortalAttrs name cost  signer dateReqAttrs notes
 parseSigner :: BS.ByteString -> Maybe BS.ByteString
 parseSigner "" = Nothing
 parseSigner s  = Just s
+
+parseUpstreamID :: [Attribute BS.ByteString] -> Int
+parseUpstreamID attrs =
+    let ngClick = getAttr "ng-click" attrs
+        f :: Maybe BS.ByteString -> BS.ByteString
+        f (Just str) = BS.takeWhile (/= ',') $ BS.tail $ BS.dropWhile (/= ',') str
+        f Nothing = error "ng-click attribute was unexpected!"
+        g :: BS.ByteString -> Int
+        g str = read $ BS.unpack $ stripWhitespace str
+    in g (f ngClick)
 
 --stripWhitespace :: BS.ByteString -> BS.ByteString
 --stripWhitespace input = BS.unwords $ filter (\x -> not $ x `elem` ["","\n","\t"]) $ BS.split ' ' input

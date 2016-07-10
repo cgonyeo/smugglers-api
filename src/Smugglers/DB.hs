@@ -41,11 +41,11 @@ createUsersTableSQL = "CREATE TABLE IF NOT EXISTS member ("
 
 createRumTableSQL :: BS.ByteString
 createRumTableSQL = "CREATE TABLE IF NOT EXISTS rum ("
-        `BS.append` "    id        SERIAL  PRIMARY KEY,"
-        `BS.append` "    country   TEXT    NOT NULL,"
-        `BS.append` "    name      TEXT    NOT NULL,"
-        `BS.append` "    price     TEXT    NOT NULL,"
-        `BS.append` "    immortal  BOOLEAN NOT NULL,"
+        `BS.append` "    id          INT     PRIMARY KEY,"
+        `BS.append` "    country     TEXT    NOT NULL,"
+        `BS.append` "    name        TEXT    NOT NULL,"
+        `BS.append` "    price       TEXT    NOT NULL,"
+        `BS.append` "    immortal    BOOLEAN NOT NULL,"
         `BS.append` "    UNIQUE (name)"
         `BS.append` ")"
 
@@ -114,7 +114,8 @@ lookupRumID conn name = do
         fromIntegral <$> wrapDBRun conn lookupRumIDSQL e d v
 
 getUserRumsSQL :: BS.ByteString
-getUserRumsSQL = " SELECT rum.country"
+getUserRumsSQL = " SELECT rum.id"
+     `BS.append` "      , rum.country"
      `BS.append` "      , rum.name"
      `BS.append` "      , rum.price"
      `BS.append` "      , rum.immortal"
@@ -133,8 +134,9 @@ getUserRums :: Connection -> BS.ByteString -> ExceptT ServantErr IO [Rum]
 getUserRums conn email = do
         userID <- lookupUserID conn email
         let e = HE.value HE.int4
-            d = HD.rowsList $ (,,,,,,)
-                                  <$> (HD.value HD.text)
+            d = HD.rowsList $ (,,,,,,,)
+                                  <$> (HD.value HD.int4)
+                                  <*> (HD.value HD.text)
                                   <*> (HD.value HD.text)
                                   <*> (HD.value HD.text)
                                   <*> (HD.value HD.bool)
@@ -143,33 +145,36 @@ getUserRums conn email = do
                                   <*> (HD.nullableValue HD.text)
             v = (fromIntegral userID)
         rows <- wrapDBRun conn getUserRumsSQL e d v
-        return $ map (\(c,na,p,i,s,r,no) -> Rum c na p i s r (toDefault no)) rows
+        return $ map (\(id,c,na,p,i,s,r,no) -> Rum (fromIntegral id) c na p i s r (toDefault no)) rows
     where toDefault (Just x) = x
           toDefault Nothing  = ""
 
 upsertRumSQL :: BS.ByteString
-upsertRumSQL = " INSERT INTO rum ( country"
+upsertRumSQL = " INSERT INTO rum ( id"
+   `BS.append` "                 , country"
    `BS.append` "                 , name"
    `BS.append` "                 , price"
    `BS.append` "                 , immortal"
    `BS.append` "                 )"
-   `BS.append` " VALUES ($1,$2,$3,$4)"
-   `BS.append` " ON CONFLICT (name)"
-   `BS.append` " DO UPDATE SET ( country"
+   `BS.append` " VALUES ($1,$2,$3,$4,$5)"
+   `BS.append` " ON CONFLICT (id)"
+   `BS.append` " DO UPDATE SET ( id"
+   `BS.append` "               , country"
    `BS.append` "               , name"
    `BS.append` "               , price"
    `BS.append` "               , immortal"
    `BS.append` "               )"
-   `BS.append` "     = ($1,$2,$3,$4)"
+   `BS.append` "     = ($1,$2,$3,$4,$5)"
 
 upsertRum :: Connection -> Rum -> ExceptT ServantErr IO ()
-upsertRum conn (Rum c n p i _ _ _) = do
-    let e = contrazip4 (HE.value HE.text)
+upsertRum conn (Rum id c n p i _ _ _) = do
+    let e = contrazip5 (HE.value HE.int4)
+                       (HE.value HE.text)
                        (HE.value HE.text)
                        (HE.value HE.text)
                        (HE.value HE.bool)
         d = HD.unit
-        v = (c,n,p,i)
+        v = ((fromIntegral id),c,n,p,i)
     wrapDBRun conn upsertRumSQL e d v
 
 upsertRumDataSQL :: BS.ByteString
@@ -190,21 +195,20 @@ upsertRumDataSQL = " INSERT INTO data ( user_id"
        `BS.append` "     = ($1,$2,$3,$4,$5)"
 
 upsertRumData :: Connection -> Int -> Rum -> ExceptT ServantErr IO ()
-upsertRumData conn userID (Rum _ n _ _ s r no) = do
-    rumID <- lookupRumID conn (E.encodeUtf8 n)
+upsertRumData conn userID (Rum id _ _ _ _ s r no) = do
     let e = contrazip5 (HE.value HE.int4)
                        (HE.value HE.int4)
                        (HE.nullableValue HE.text)
                        (HE.nullableValue HE.text)
                        (HE.value HE.text)
         d = HD.unit
-        v = (fromIntegral userID,fromIntegral rumID,s,r,no)
+        v = (fromIntegral userID,fromIntegral id,s,r,no)
     wrapDBRun conn upsertRumDataSQL e d v
 
 saveRumsForUser :: Connection -> BS.ByteString -> [Rum] -> ExceptT ServantErr IO ()
 saveRumsForUser conn email rums = do
     forM_ rums (upsertRum conn)
-    let rumsWithData = filter (\(Rum _ _ _ _ r q n) -> not (isNothing r && isNothing q && n == "")) rums
+    let rumsWithData = filter (\(Rum _ _ _ _ _ r q n) -> not (isNothing r && isNothing q && n == "")) rums
     userID <- lookupUserID conn email
     forM_ rumsWithData (upsertRumData conn userID)
     return ()
