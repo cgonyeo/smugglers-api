@@ -222,7 +222,7 @@ newRum country linkAttrs name cost  signer dateReqAttrs notes
             = Rum (parseUpstreamID linkAttrs)
                   (E.decodeUtf8 $ stripWhitespace country)
                   (E.decodeUtf8 $ stripWhitespace name)
-                  (E.decodeUtf8 $ stripWhitespace cost)
+                  (parseCost $ stripWhitespace cost)
                   (hasClass "immortal-item" linkAttrs)
                   (E.decodeUtf8 <$> parseSigner (stripWhitespace signer))
                   (E.decodeUtf8 <$> getAttr "data-requested" dateReqAttrs)
@@ -242,8 +242,9 @@ parseUpstreamID attrs =
         g str = read $ BS.unpack $ stripWhitespace str
     in g (f ngClick)
 
---stripWhitespace :: BS.ByteString -> BS.ByteString
---stripWhitespace input = BS.unwords $ filter (\x -> not $ x `elem` ["","\n","\t"]) $ BS.split ' ' input
+parseCost :: BS.ByteString -> Double
+parseCost str = let str' = if BS.head str == '$' then BS.tail str else str
+                in read $ BS.unpack str'
 
 stripWhitespace :: BS.ByteString -> BS.ByteString
 stripWhitespace input = let strippedBeginning = dropWhiteSpaceAtFront input

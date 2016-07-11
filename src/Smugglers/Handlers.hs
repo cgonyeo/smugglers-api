@@ -35,8 +35,8 @@ updateRumsForUser conn (User email pw) = do
 getRumsForUser :: Connection -> User -> ExceptT ServantErr IO [Rum]
 getRumsForUser conn (User email _) = getUserRums conn (E.encodeUtf8 email)
 
-updateNoteForUser :: Connection -> Int -> User -> StructuredNote -> ExceptT ServantErr IO ()
-updateNoteForUser conn rumID (User email pw) newNote = do
+updateNoteForUser :: Connection -> User -> Int -> StructuredNote -> ExceptT ServantErr IO ()
+updateNoteForUser conn (User email pw) rumID newNote = do
     let bsEmail = E.encodeUtf8 email
     authCookies <- auth bsEmail (E.encodeUtf8 pw)
     U.updateNoteForUser authCookies rumID (BS.pack $ show newNote)

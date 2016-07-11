@@ -31,8 +31,8 @@ type SmugglersAPI = "rums"
                  :> BasicAuth "smugglers" User
                  :> Post '[JSON] ()
                :<|> "update-note"
-                 :> Capture "id" Int
                  :> BasicAuth "smugglers" User
+                 :> Capture "id" Int
                  :> ReqBody '[JSON] StructuredNote
                  :> Post '[JSON] ()
 

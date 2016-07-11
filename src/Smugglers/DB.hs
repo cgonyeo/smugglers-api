@@ -42,11 +42,11 @@ createUsersTableSQL = "CREATE TABLE IF NOT EXISTS member ("
 
 createRumTableSQL :: BS.ByteString
 createRumTableSQL = "CREATE TABLE IF NOT EXISTS rum ("
-        `BS.append` "    id          INT     PRIMARY KEY,"
-        `BS.append` "    country     TEXT    NOT NULL,"
-        `BS.append` "    name        TEXT    NOT NULL,"
-        `BS.append` "    price       TEXT    NOT NULL,"
-        `BS.append` "    immortal    BOOLEAN NOT NULL,"
+        `BS.append` "    id          INT              PRIMARY KEY,"
+        `BS.append` "    country     TEXT             NOT NULL,"
+        `BS.append` "    name        TEXT             NOT NULL,"
+        `BS.append` "    price       DOUBLE PRECISION NOT NULL,"
+        `BS.append` "    immortal    BOOLEAN          NOT NULL,"
         `BS.append` "    UNIQUE (name)"
         `BS.append` ")"
 
@@ -139,7 +139,7 @@ getUserRums conn email = do
                                   <$> (HD.value HD.int4)
                                   <*> (HD.value HD.text)
                                   <*> (HD.value HD.text)
-                                  <*> (HD.value HD.text)
+                                  <*> (HD.value HD.float8)
                                   <*> (HD.value HD.bool)
                                   <*> (HD.nullableValue HD.text)
                                   <*> (HD.nullableValue HD.text)
@@ -180,7 +180,7 @@ upsertRum conn (Rum id c n p i _ _ _) = do
     let e = contrazip5 (HE.value HE.int4)
                        (HE.value HE.text)
                        (HE.value HE.text)
-                       (HE.value HE.text)
+                       (HE.value HE.float8)
                        (HE.value HE.bool)
         d = HD.unit
         v = ((fromIntegral id),c,n,p,i)

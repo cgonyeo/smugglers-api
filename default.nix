@@ -5,15 +5,21 @@ let
   inherit (nixpkgs) pkgs;
 
   f = { mkDerivation, aeson, base, bytestring, contravariant
-      , contravariant-extras, hasql, http-conduit, semigroups, servant
-      , servant-server, stdenv, tagsoup, text, transformers, wai, warp
+      , contravariant-extras, hasql, http-client, http-conduit
+      , semigroups, servant, servant-client, servant-server, stdenv
+      , tagsoup, text, transformers, wai, warp
       }:
       mkDerivation {
         pname = "smugglers-api";
         version = "0.1.0.0";
         src = ./.;
-        isLibrary = false;
+        isLibrary = true;
         isExecutable = true;
+        libraryHaskellDepends = [
+          aeson base bytestring contravariant contravariant-extras hasql
+          http-client http-conduit semigroups servant servant-client
+          servant-server tagsoup text transformers wai warp
+        ];
         executableHaskellDepends = [
           aeson base bytestring contravariant contravariant-extras hasql
           http-conduit semigroups servant servant-server tagsoup text

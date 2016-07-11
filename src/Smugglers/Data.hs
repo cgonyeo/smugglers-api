@@ -26,7 +26,7 @@ noteEndpoint = "/brg/save-notes"
 data Rum = Rum { rumId      :: Int
                , country    :: T.Text
                , name       :: T.Text
-               , price      :: T.Text
+               , price      :: Double
                , immortal   :: Bool
                , signer     :: Maybe T.Text
                , requested  :: Maybe T.Text
@@ -34,10 +34,12 @@ data Rum = Rum { rumId      :: Int
                } deriving (Show,Generic)
 
 instance ToJSON Rum
+instance FromJSON Rum
 
 data User = User { userEmail    :: T.Text
                  , userPassword :: T.Text
                  } deriving (Generic)
+instance ToJSON User
 instance FromJSON User
 
 data StructuredNote = StructuredNote { rating     :: Double
