@@ -9,7 +9,6 @@ import Smugglers.DB
 import qualified Smugglers.Upstream.GetRums as R
 import qualified Smugglers.Upstream.UpdateNote as U
 
-import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
 
 import Smugglers.Upstream.Auth

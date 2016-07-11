@@ -22,23 +22,23 @@ data LoginInfo = LoginInfo { email            :: T.Text
                            , programId        :: Int
                            , rewardsGroupName :: T.Text
                            , referer          :: T.Text
-                           } deriving (Show,Generic)
+                           } deriving (Generic)
 instance ToJSON LoginInfo
 
 data LoginResponse = LoginResponse { redirect :: Bool
                                    , url      :: T.Text
-                                   } deriving (Show,Generic)
+                                   } deriving (Generic)
 instance FromJSON LoginResponse
 
 data ErrorResponse = ErrorResponse { errors       :: Bool
                                    , errorMessage :: T.Text
-                                   } deriving (Show,Generic)
+                                   } deriving (Generic)
 instance FromJSON ErrorResponse
 
 auth :: BS.ByteString -> BS.ByteString -> ExceptT ServantErr IO [Cookie]
-auth email password = do
-    let loginInfo = encode $ LoginInfo { email            = E.decodeUtf8 email
-                                       , password         = E.decodeUtf8 password
+auth email' password' = do
+    let loginInfo = encode $ LoginInfo { email            = E.decodeUtf8 email'
+                                       , password         = E.decodeUtf8 password'
                                        , programId        = 1
                                        , rewardsGroupName = "rumbustion"
                                        , referer          = "/brg"

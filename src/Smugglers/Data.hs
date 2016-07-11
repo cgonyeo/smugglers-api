@@ -68,13 +68,13 @@ parseStructuredNote str =
         let ls = lines str
             sections = foldl f [] ls
             maybeNote =
-                do rating   <-            lookup "--Rating--"      sections >>= readMaybe
-                   color    <- T.pack <$> lookup "--Color--"       sections
-                   smells   <- T.pack <$> lookup "--Smells--"      sections
-                   taste    <- T.pack <$> lookup "--Taste--"       sections
-                   after    <- T.pack <$> lookup "--After Taste--" sections
-                   thoughts <- T.pack <$> lookup "--Thoughts--"    sections
-                   return $ StructuredNote rating color smells taste after thoughts
+                do r  <-            lookup "--Rating--"      sections >>= readMaybe
+                   c  <- T.pack <$> lookup "--Color--"       sections
+                   s  <- T.pack <$> lookup "--Smells--"      sections
+                   ta <- T.pack <$> lookup "--Taste--"       sections
+                   a  <- T.pack <$> lookup "--After Taste--" sections
+                   th <- T.pack <$> lookup "--Thoughts--"    sections
+                   return $ StructuredNote r c s ta a th
         in case maybeNote of
                Just n -> Just n
                Nothing -> Just $ StructuredNote 0.0 "" "" "" "" (T.pack str)

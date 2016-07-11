@@ -5,9 +5,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Except
 import Data.Either
-import Data.Functor.Contravariant (contramap)
 import Data.Maybe
-import Data.Semigroup ((<>))
 import Contravariant.Extras.Contrazip
 
 import qualified Data.Text as T
@@ -30,7 +28,7 @@ wrapDBRun conn sqlBlob enc dec v = do
     res <- liftIO $ run (query v q) conn
     case res of
         Left e -> throwE err500 { errBody = BSL.pack $ show e }
-        Right res -> return res
+        Right res' -> return res'
 
 createUsersTableSQL :: BS.ByteString
 createUsersTableSQL = "CREATE TABLE IF NOT EXISTS member ("
@@ -66,10 +64,10 @@ initializeDB s = do econn <- liftIO $ acquire s
                     when (isLeft econn)
                         (throwE $ fromJust $ (\(Left x) -> x) econn)
                     let conn = (\(Right x) -> x) econn
-                    let s = do sql createUsersTableSQL
-                               sql createRumTableSQL
-                               sql createDataTableSQL
-                    res <- liftIO $ run s conn
+                    let sql' = do sql createUsersTableSQL
+                                  sql createRumTableSQL
+                                  sql createDataTableSQL
+                    res <- liftIO $ run sql' conn
                     case res of
                         Left e -> throwE $ BS.pack $ show e
                         Right _ -> return conn
@@ -108,10 +106,10 @@ lookupRumIDSQL :: BS.ByteString
 lookupRumIDSQL = "SELECT * FROM rum WHERE name = $1"
 
 lookupRumID :: Connection -> BS.ByteString -> ExceptT ServantErr IO Int
-lookupRumID conn name = do
+lookupRumID conn name' = do
         let e = HE.value HE.text
             d = HD.singleRow $ HD.value HD.int4
-            v = (E.decodeUtf8 name)
+            v = (E.decodeUtf8 name')
         fromIntegral <$> wrapDBRun conn lookupRumIDSQL e d v
 
 getUserRumsSQL :: BS.ByteString
@@ -146,7 +144,7 @@ getUserRums conn email = do
                                   <*> (HD.nullableValue HD.text)
             v = (fromIntegral userID)
         rows <- wrapDBRun conn getUserRumsSQL e d v
-        return $ map (\(id,c,na,p,i,s,r,no) -> Rum (fromIntegral id)
+        return $ map (\(id',c,na,p,i,s,r,no) -> Rum (fromIntegral id')
                                                    c
                                                    na
                                                    p
@@ -176,14 +174,14 @@ upsertRumSQL = " INSERT INTO rum ( id"
    `BS.append` "     = ($1,$2,$3,$4,$5)"
 
 upsertRum :: Connection -> Rum -> ExceptT ServantErr IO ()
-upsertRum conn (Rum id c n p i _ _ _) = do
+upsertRum conn (Rum id' c n p i _ _ _) = do
     let e = contrazip5 (HE.value HE.int4)
                        (HE.value HE.text)
                        (HE.value HE.text)
                        (HE.value HE.float8)
                        (HE.value HE.bool)
         d = HD.unit
-        v = ((fromIntegral id),c,n,p,i)
+        v = ((fromIntegral id'),c,n,p,i)
     wrapDBRun conn upsertRumSQL e d v
 
 upsertRumDataSQL :: BS.ByteString
@@ -204,14 +202,14 @@ upsertRumDataSQL = " INSERT INTO data ( user_id"
        `BS.append` "     = ($1,$2,$3,$4,$5)"
 
 upsertRumData :: Connection -> Int -> Rum -> ExceptT ServantErr IO ()
-upsertRumData conn userID (Rum id _ _ _ _ s r no) = do
+upsertRumData conn userID (Rum id' _ _ _ _ s r no) = do
     let e = contrazip5 (HE.value HE.int4)
                        (HE.value HE.int4)
                        (HE.nullableValue HE.text)
                        (HE.nullableValue HE.text)
                        (HE.nullableValue HE.text)
         d = HD.unit
-        v = (fromIntegral userID,fromIntegral id,s,r,T.pack <$> show <$> no)
+        v = (fromIntegral userID,fromIntegral id',s,r,T.pack <$> show <$> no)
     wrapDBRun conn upsertRumDataSQL e d v
 
 saveRumsForUser :: Connection -> BS.ByteString -> [Rum] -> ExceptT ServantErr IO ()
