@@ -3,6 +3,7 @@
 
 module Smugglers.Data where
 
+import Text.Read (readMaybe)
 import Data.Aeson
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
@@ -19,6 +20,9 @@ authEndpoint = "/brg/login"
 dataEndpoint :: BS.ByteString
 dataEndpoint = "/brg/home?rewardsGroupName=rumbustion"
 
+noteEndpoint :: BS.ByteString
+noteEndpoint = "/brg/save-notes"
+
 data Rum = Rum { rumId      :: Int
                , country    :: T.Text
                , name       :: T.Text
@@ -26,7 +30,7 @@ data Rum = Rum { rumId      :: Int
                , immortal   :: Bool
                , signer     :: Maybe T.Text
                , requested  :: Maybe T.Text
-               , notes      :: T.Text
+               , notes      :: Maybe StructuredNote
                } deriving (Show,Generic)
 
 instance ToJSON Rum
@@ -35,3 +39,44 @@ data User = User { userEmail    :: T.Text
                  , userPassword :: T.Text
                  } deriving (Generic)
 instance FromJSON User
+
+data StructuredNote = StructuredNote { rating     :: Double
+                                     , color      :: T.Text
+                                     , smells     :: T.Text
+                                     , taste      :: T.Text
+                                     , aftertaste :: T.Text
+                                     , thoughts   :: T.Text
+                                     } deriving(Generic)
+instance ToJSON StructuredNote
+instance FromJSON StructuredNote
+
+instance Show StructuredNote where
+        show (StructuredNote 0.0 "" "" "" "" th) = T.unpack th
+        show (StructuredNote r c s ta a th) =
+            "--Rating--\n"          ++ show r
+         ++ "\n\n--Color--\n"       ++ T.unpack c
+         ++ "\n\n--Smells--\n"      ++ T.unpack s
+         ++ "\n\n--Taste--\n"       ++ T.unpack ta
+         ++ "\n\n--After Taste--\n" ++ T.unpack a
+         ++ "\n\n--Thoughts--\n"    ++ T.unpack th
+
+parseStructuredNote :: String -> Maybe StructuredNote
+parseStructuredNote "" = Nothing
+parseStructuredNote str = 
+        let ls = lines str
+            sections = foldl f [] ls
+            maybeNote =
+                do rating   <-            lookup "--Rating--"      sections >>= readMaybe
+                   color    <- T.pack <$> lookup "--Color--"       sections
+                   smells   <- T.pack <$> lookup "--Smells--"      sections
+                   taste    <- T.pack <$> lookup "--Taste--"       sections
+                   after    <- T.pack <$> lookup "--After Taste--" sections
+                   thoughts <- T.pack <$> lookup "--Thoughts--"    sections
+                   return $ StructuredNote rating color smells taste after thoughts
+        in case maybeNote of
+               Just n -> Just n
+               Nothing -> Just $ StructuredNote 0.0 "" "" "" "" (T.pack str)
+    where f a l@('-':'-':_) = (l,""):a
+          f ((label,""):a) l = (label,l):a
+          f ((label,contents):a) l = (label,contents ++ "\n" ++ l):a
+          f a _ = a

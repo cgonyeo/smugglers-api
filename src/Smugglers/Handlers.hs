@@ -7,6 +7,10 @@ import qualified Data.Text.Encoding as E
 import Smugglers.Data
 import Smugglers.DB
 import qualified Smugglers.Upstream.GetRums as R
+import qualified Smugglers.Upstream.UpdateNote as U
+
+import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as BS
 
 import Smugglers.Upstream.Auth
 
@@ -29,6 +33,11 @@ updateRumsForUser conn (User email pw) = do
     saveRumsForUser conn bsEmail rums
 
 getRumsForUser :: Connection -> User -> ExceptT ServantErr IO [Rum]
-getRumsForUser conn (User email _) = do
-    rums <- getUserRums conn (E.encodeUtf8 email)
-    return rums
+getRumsForUser conn (User email _) = getUserRums conn (E.encodeUtf8 email)
+
+updateNoteForUser :: Connection -> Int -> User -> StructuredNote -> ExceptT ServantErr IO ()
+updateNoteForUser conn rumID (User email pw) newNote = do
+    let bsEmail = E.encodeUtf8 email
+    authCookies <- auth bsEmail (E.encodeUtf8 pw)
+    U.updateNoteForUser authCookies rumID (BS.pack $ show newNote)
+    upsertNoteForUser conn bsEmail rumID newNote

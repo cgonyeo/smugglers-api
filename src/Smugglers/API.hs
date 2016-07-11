@@ -21,11 +21,23 @@ smugglersAPIContext conn = (authCheck conn) :. EmptyContext
 smugglersAPI :: Proxy SmugglersAPI
 smugglersAPI = Proxy
 
-type SmugglersAPI = "rums" :> BasicAuth "smugglers" User :> Get '[JSON] [Rum]
-               :<|> "import-user" :> ReqBody '[JSON] User :> Post '[JSON] ()
-               :<|> "update-rums" :> BasicAuth "smugglers" User :> Post '[JSON] ()
+type SmugglersAPI = "rums"
+                 :> BasicAuth "smugglers" User
+                 :> Get '[JSON] [Rum]
+               :<|> "import-user"
+                 :> ReqBody '[JSON] User
+                 :> Post '[JSON] ()
+               :<|> "update-rums"
+                 :> BasicAuth "smugglers" User
+                 :> Post '[JSON] ()
+               :<|> "update-note"
+                 :> Capture "id" Int
+                 :> BasicAuth "smugglers" User
+                 :> ReqBody '[JSON] StructuredNote
+                 :> Post '[JSON] ()
 
 server :: Connection -> Server SmugglersAPI
 server conn = getRumsForUser conn
          :<|> importUser conn
          :<|> updateRumsForUser conn
+         :<|> updateNoteForUser conn

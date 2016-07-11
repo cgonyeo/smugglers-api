@@ -19,7 +19,6 @@ import Servant
 import Text.HTML.TagSoup
 import qualified Network.HTTP.Simple as H
 
-import Smugglers.Auth
 import Smugglers.Data
 
 getRumsForUser :: [Cookie] -> ExceptT ServantErr IO [Rum]
@@ -227,7 +226,7 @@ newRum country linkAttrs name cost  signer dateReqAttrs notes
                   (hasClass "immortal-item" linkAttrs)
                   (E.decodeUtf8 <$> parseSigner (stripWhitespace signer))
                   (E.decodeUtf8 <$> getAttr "data-requested" dateReqAttrs)
-                  (E.decodeUtf8 $ stripWhitespace notes)
+                  (parseStructuredNote $ BS.unpack $ stripWhitespace notes)
 
 parseSigner :: BS.ByteString -> Maybe BS.ByteString
 parseSigner "" = Nothing

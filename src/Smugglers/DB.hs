@@ -10,6 +10,7 @@ import Data.Maybe
 import Data.Semigroup ((<>))
 import Contravariant.Extras.Contrazip
 
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BSL
@@ -56,7 +57,7 @@ createDataTableSQL = "CREATE TABLE IF NOT EXISTS data ("
           `BS.append` "    rum_id    INT    NOT NULL,"
           `BS.append` "    signer    TEXT,"
           `BS.append` "    requested TEXT,"
-          `BS.append` "    notes     TEXT NOT NULL,"
+          `BS.append` "    notes     TEXT,"
           `BS.append` "    UNIQUE(user_id,rum_id)"
           `BS.append` ")"
 
@@ -145,7 +146,15 @@ getUserRums conn email = do
                                   <*> (HD.nullableValue HD.text)
             v = (fromIntegral userID)
         rows <- wrapDBRun conn getUserRumsSQL e d v
-        return $ map (\(id,c,na,p,i,s,r,no) -> Rum (fromIntegral id) c na p i s r (toDefault no)) rows
+        return $ map (\(id,c,na,p,i,s,r,no) -> Rum (fromIntegral id)
+                                                   c
+                                                   na
+                                                   p
+                                                   i
+                                                   s
+                                                   r
+                                                   (parseStructuredNote $ T.unpack $ toDefault no)
+                     ) rows
     where toDefault (Just x) = x
           toDefault Nothing  = ""
 
@@ -200,15 +209,38 @@ upsertRumData conn userID (Rum id _ _ _ _ s r no) = do
                        (HE.value HE.int4)
                        (HE.nullableValue HE.text)
                        (HE.nullableValue HE.text)
-                       (HE.value HE.text)
+                       (HE.nullableValue HE.text)
         d = HD.unit
-        v = (fromIntegral userID,fromIntegral id,s,r,no)
+        v = (fromIntegral userID,fromIntegral id,s,r,T.pack <$> show <$> no)
     wrapDBRun conn upsertRumDataSQL e d v
 
 saveRumsForUser :: Connection -> BS.ByteString -> [Rum] -> ExceptT ServantErr IO ()
 saveRumsForUser conn email rums = do
     forM_ rums (upsertRum conn)
-    let rumsWithData = filter (\(Rum _ _ _ _ _ r q n) -> not (isNothing r && isNothing q && n == "")) rums
+    let rumsWithData = filter (\(Rum _ _ _ _ _ r q n) -> not (isNothing r && isNothing q && isNothing n)) rums
     userID <- lookupUserID conn email
     forM_ rumsWithData (upsertRumData conn userID)
     return ()
+
+upsertNoteForUserSQL :: BS.ByteString
+upsertNoteForUserSQL = " INSERT INTO data ( user_id"
+           `BS.append` "                  , rum_id"
+           `BS.append` "                  , notes"
+           `BS.append` "                  )"
+           `BS.append` " VALUES ($1,$2,$3)"
+           `BS.append` " ON CONFLICT (user_id,rum_id)"
+           `BS.append` " DO UPDATE SET ( user_id"
+           `BS.append` "               , rum_id"
+           `BS.append` "               , notes"
+           `BS.append` "               )"
+           `BS.append` "     = ($1,$2,$3)"
+
+upsertNoteForUser :: Connection -> BS.ByteString -> Int -> StructuredNote -> ExceptT ServantErr IO ()
+upsertNoteForUser conn email rumID note = do
+    userID <- lookupUserID conn email
+    let e = contrazip3 (HE.value HE.int4)
+                       (HE.value HE.int4)
+                       (HE.value HE.text)
+        d = HD.unit
+        v = (fromIntegral userID,fromIntegral rumID,T.pack $ show note)
+    wrapDBRun conn upsertNoteForUserSQL e d v

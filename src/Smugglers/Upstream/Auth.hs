@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Smugglers.Upstream.Auth where
+module Smugglers.Upstream.Auth (auth) where
 
 import Data.Aeson
 import qualified Network.HTTP.Simple as H
