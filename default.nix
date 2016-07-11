@@ -6,8 +6,8 @@ let
 
   f = { mkDerivation, aeson, base, bytestring, contravariant
       , contravariant-extras, hasql, http-client, http-conduit
-      , semigroups, servant, servant-client, servant-server, stdenv
-      , tagsoup, text, transformers, wai, warp
+      , optparse-applicative, semigroups, servant, servant-client
+      , servant-server, stdenv, tagsoup, text, transformers, wai, warp
       }:
       mkDerivation {
         pname = "smugglers-api";
@@ -22,8 +22,8 @@ let
         ];
         executableHaskellDepends = [
           aeson base bytestring contravariant contravariant-extras hasql
-          http-conduit semigroups servant servant-server tagsoup text
-          transformers wai warp
+          http-client http-conduit optparse-applicative semigroups servant
+          servant-client servant-server tagsoup text transformers wai warp
         ];
         homepage = "https://github.com/dgonyeo/smugglers-api";
         description = "HTTP API that wraps sc.bevager.com";

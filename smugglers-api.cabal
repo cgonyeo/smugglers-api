@@ -38,6 +38,7 @@ executable smugglers-api
                      , contravariant         >=1.4  && <1.5
                      , semigroups            >=0.18 && <0.19
                      , contravariant-extras  >=0.3  && <0.4
+                     , optparse-applicative  >=0.12 && <0.13
 library
   exposed-modules:     Smugglers.Client
   -- other-modules:       
