@@ -15,6 +15,7 @@ let
         src = ./.;
         isLibrary = true;
         isExecutable = true;
+        enableSharedExecutables = false;
         libraryHaskellDepends = [
           aeson base bytestring contravariant contravariant-extras hasql
           http-client http-conduit semigroups servant servant-client

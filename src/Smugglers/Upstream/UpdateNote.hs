@@ -7,7 +7,6 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Except
 import Data.Aeson
-import Data.Maybe
 import GHC.Generics
 
 import qualified Data.ByteString.Char8 as BS
